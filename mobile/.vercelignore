@@ -1,0 +1,7 @@
+# Anchored to the project root only, so it doesn't also match the legitimate
+# dist/assets/node_modules/... paths that Expo's web export uses for hashed
+# font/icon assets (a plain "node_modules/" pattern, like the one in .gitignore,
+# matches at any depth and was silently dropping those files from deploys).
+/node_modules/
+/.expo/
+/.git/
