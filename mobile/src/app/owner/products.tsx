@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { listProducts, createProduct, updateProduct } from "@/api/products";
@@ -12,6 +12,7 @@ import { BarcodeScanner } from "@/components/BarcodeScanner";
 import { Card } from "@/components/Card";
 import { Badge } from "@/components/Badge";
 import { EmptyState } from "@/components/EmptyState";
+import { FormModal } from "@/components/FormModal";
 import { colors, radii, spacing, typography } from "@/theme";
 
 export default function ProductsScreen() {
@@ -83,7 +84,7 @@ export default function ProductsScreen() {
         />
       )}
 
-      <Modal visible={formOpen} animationType="slide" onRequestClose={closeForm}>
+      <FormModal visible={formOpen} onRequestClose={closeForm}>
         <ProductForm
           product={editing}
           onDone={() => {
@@ -92,7 +93,7 @@ export default function ProductsScreen() {
           }}
           onCancel={closeForm}
         />
-      </Modal>
+      </FormModal>
     </SafeAreaView>
   );
 }
@@ -171,7 +172,7 @@ function ProductForm({
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.formContent}>
+      <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
         <TextField label="Name" icon="pricetag" value={name} onChangeText={setName} placeholder="e.g. Coca-Cola 500ml" />
 
         <View style={styles.barcodeRow}>
@@ -209,7 +210,7 @@ function ProductForm({
         )}
 
         <PrimaryButton title={isEdit ? "Save Changes" : "Add Product"} onPress={handleSave} loading={saving} icon="checkmark" />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

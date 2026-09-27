@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { listSellers, createSeller, deleteSeller } from "@/api/sellers";
@@ -9,6 +9,7 @@ import { TextField } from "@/components/TextField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { Card } from "@/components/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { FormModal } from "@/components/FormModal";
 import { colors, radii, spacing, typography } from "@/theme";
 
 export default function SellersScreen() {
@@ -73,7 +74,7 @@ export default function SellersScreen() {
         />
       )}
 
-      <Modal visible={formOpen} animationType="slide" onRequestClose={() => setFormOpen(false)}>
+      <FormModal visible={formOpen} onRequestClose={() => setFormOpen(false)}>
         <SellerForm
           onDone={() => {
             invalidate();
@@ -81,7 +82,7 @@ export default function SellersScreen() {
           }}
           onCancel={() => setFormOpen(false)}
         />
-      </Modal>
+      </FormModal>
     </SafeAreaView>
   );
 }
@@ -117,7 +118,7 @@ function SellerForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
         <View style={{ width: 24 }} />
       </View>
 
-      <View style={styles.formContent}>
+      <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled">
         <TextField label="Name" icon="person" value={name} onChangeText={setName} placeholder="e.g. John Mwangi" />
         <TextField label="Phone number" icon="call" keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="0712345678" />
         <TextField label="PIN (4-6 digits)" icon="keypad" keyboardType="number-pad" secureTextEntry value={pin} onChangeText={setPin} placeholder="1234" />
@@ -137,7 +138,7 @@ function SellerForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
         </View>
 
         <PrimaryButton title="Add Seller" onPress={handleSave} loading={createMutation.isPending} icon="checkmark" />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

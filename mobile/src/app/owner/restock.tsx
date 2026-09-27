@@ -17,6 +17,7 @@ import { colors, radii, spacing, typography } from "@/theme";
 export default function RestockScreen() {
   const queryClient = useQueryClient();
   const [scanning, setScanning] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("");
   const [costPerUnit, setCostPerUnit] = useState("");
@@ -31,18 +32,19 @@ export default function RestockScreen() {
       setProduct(null);
       setQuantity("");
       setCostPerUnit("");
+      setManualBarcode("");
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: (err) => setError(err instanceof ApiError ? err.message : "Could not record restock."),
   });
 
-  const handleScanned = async (code: string) => {
-    setScanning(false);
+  const lookupBarcode = async (code: string) => {
+    if (!code.trim()) return;
     setError(null);
     setSuccess(null);
     setLookupLoading(true);
     try {
-      const res = await getProductByBarcode(code);
+      const res = await getProductByBarcode(code.trim());
       setProduct(res.product);
       setCostPerUnit(res.product.costPrice);
     } catch (err) {
@@ -50,6 +52,11 @@ export default function RestockScreen() {
     } finally {
       setLookupLoading(false);
     }
+  };
+
+  const handleScanned = (code: string) => {
+    setScanning(false);
+    lookupBarcode(code);
   };
 
   const handleSubmit = () => {
@@ -85,6 +92,27 @@ export default function RestockScreen() {
           loading={lookupLoading}
           icon="scan"
         />
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <View style={styles.manualRow}>
+          <View style={{ flex: 1 }}>
+            <TextField
+              label="Barcode"
+              icon="barcode"
+              value={manualBarcode}
+              onChangeText={setManualBarcode}
+              placeholder="Type or use a USB scanner"
+              onSubmitEditing={() => lookupBarcode(manualBarcode)}
+              returnKeyType="search"
+            />
+          </View>
+          <PrimaryButton title="Look Up" onPress={() => lookupBarcode(manualBarcode)} variant="outline" icon="search" />
+        </View>
 
         {success && (
           <View style={styles.successBox}>
@@ -134,6 +162,10 @@ const styles = StyleSheet.create({
   title: { ...typography.title, color: colors.text },
   subtitle: { ...typography.subtitle, color: colors.textMuted },
   muted: { color: colors.textMuted, fontSize: 13 },
+  dividerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
+  dividerText: { color: colors.textFaint, fontSize: 12, fontWeight: "700" },
+  manualRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
   successBox: {
     flexDirection: "row",
     alignItems: "center",
