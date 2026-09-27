@@ -2,13 +2,17 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { listProducts, createProduct, updateProduct } from "@/api/products";
 import type { Product } from "@/api/types";
 import { ApiError } from "@/api/client";
 import { TextField } from "@/components/TextField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { colors, spacing } from "@/theme";
+import { Card } from "@/components/Card";
+import { Badge } from "@/components/Badge";
+import { EmptyState } from "@/components/EmptyState";
+import { colors, radii, spacing, typography } from "@/theme";
 
 export default function ProductsScreen() {
   const queryClient = useQueryClient();
@@ -31,10 +35,15 @@ export default function ProductsScreen() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["products"] });
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.count}>{products.length} product{products.length === 1 ? "" : "s"}</Text>
-        <PrimaryButton title="+ Add Product" onPress={openAdd} />
+        <View>
+          <Text style={styles.headerTitle}>Products</Text>
+          <Text style={styles.count}>
+            {products.length} product{products.length === 1 ? "" : "s"}
+          </Text>
+        </View>
+        <PrimaryButton title="Add" onPress={openAdd} icon="add" size="sm" />
       </View>
 
       {isLoading ? (
@@ -44,19 +53,31 @@ export default function ProductsScreen() {
           data={products}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.muted}>No products yet. Add your first one.</Text>}
+          ListEmptyComponent={
+            <EmptyState
+              icon="cube-outline"
+              title="No products yet"
+              subtitle="Add your first product and give it a barcode to start tracking stock."
+            />
+          }
           renderItem={({ item }) => (
-            <Pressable style={styles.row} onPress={() => openEdit(item)}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>{item.name}</Text>
-                <Text style={styles.muted}>Barcode: {item.barcode}</Text>
-              </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={styles.rowPrice}>Ksh {item.sellPrice}</Text>
-                <Text style={[styles.muted, item.currentStock === 0 && styles.outOfStock]}>
-                  {item.currentStock} in stock
-                </Text>
-              </View>
+            <Pressable onPress={() => openEdit(item)}>
+              <Card style={styles.row}>
+                <View style={styles.rowIcon}>
+                  <Ionicons name="cube" size={18} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
+                  <Text style={styles.muted}>#{item.barcode}</Text>
+                </View>
+                <View style={{ alignItems: "flex-end", gap: 4 }}>
+                  <Text style={styles.rowPrice}>Ksh {Number(item.sellPrice).toLocaleString()}</Text>
+                  <Badge
+                    label={`${item.currentStock} in stock`}
+                    tone={item.currentStock === 0 ? "danger" : item.currentStock < 5 ? "accent" : "success"}
+                  />
+                </View>
+              </Card>
             </Pressable>
           )}
         />
@@ -142,15 +163,22 @@ function ProductForm({
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.formContent}>
+      <View style={styles.formHeader}>
+        <Pressable onPress={onCancel} hitSlop={12}>
+          <Ionicons name="close" size={24} color={colors.textMuted} />
+        </Pressable>
         <Text style={styles.formTitle}>{isEdit ? "Edit Product" : "Add Product"}</Text>
+        <View style={{ width: 24 }} />
+      </View>
 
-        <TextField label="Name" value={name} onChangeText={setName} placeholder="e.g. Coca-Cola 500ml" />
+      <View style={styles.formContent}>
+        <TextField label="Name" icon="pricetag" value={name} onChangeText={setName} placeholder="e.g. Coca-Cola 500ml" />
 
         <View style={styles.barcodeRow}>
           <View style={{ flex: 1 }}>
             <TextField
               label="Barcode"
+              icon="barcode"
               value={barcode}
               onChangeText={setBarcode}
               placeholder="Scan or type"
@@ -158,18 +186,29 @@ function ProductForm({
             />
           </View>
           {!isEdit && (
-            <PrimaryButton title="Scan" onPress={() => setScanning(true)} variant="outline" />
+            <PrimaryButton title="Scan" onPress={() => setScanning(true)} variant="outline" icon="scan" />
           )}
         </View>
 
-        <TextField label="Cost Price (Ksh)" value={String(costPrice)} onChangeText={setCostPrice} keyboardType="decimal-pad" />
-        <TextField label="Sell Price (Ksh)" value={String(sellPrice)} onChangeText={setSellPrice} keyboardType="decimal-pad" />
-        <TextField label="Category (optional)" value={category ?? ""} onChangeText={setCategory} placeholder="e.g. Drinks" />
+        <View style={styles.priceRow}>
+          <View style={{ flex: 1 }}>
+            <TextField label="Cost Price" icon="cash" value={String(costPrice)} onChangeText={setCostPrice} keyboardType="decimal-pad" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <TextField label="Sell Price" icon="cash-outline" value={String(sellPrice)} onChangeText={setSellPrice} keyboardType="decimal-pad" />
+          </View>
+        </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+        <TextField label="Category (optional)" icon="grid" value={category ?? ""} onChangeText={setCategory} placeholder="e.g. Drinks" />
 
-        <PrimaryButton title={isEdit ? "Save Changes" : "Add Product"} onPress={handleSave} loading={saving} />
-        <PrimaryButton title="Cancel" onPress={onCancel} variant="outline" />
+        {error && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <PrimaryButton title={isEdit ? "Save Changes" : "Add Product"} onPress={handleSave} loading={saving} icon="checkmark" />
       </View>
     </SafeAreaView>
   );
@@ -184,24 +223,42 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  count: { color: colors.textMuted, fontWeight: "600" },
-  muted: { color: colors.textMuted, padding: spacing.lg },
-  error: { color: colors.danger },
+  headerTitle: { ...typography.title, color: colors.text },
+  count: { color: colors.textMuted, fontWeight: "600", fontSize: 13 },
+  muted: { color: colors.textMuted, fontSize: 13 },
   listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
+  row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
   },
   rowTitle: { fontWeight: "700", color: colors.text, fontSize: 15 },
   rowPrice: { fontWeight: "800", color: colors.text },
-  outOfStock: { color: colors.danger, fontWeight: "700" },
+  formHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  formTitle: { fontSize: 17, fontWeight: "800", color: colors.text },
   formContent: { padding: spacing.lg, gap: spacing.md },
-  formTitle: { fontSize: 20, fontWeight: "800", color: colors.text },
   barcodeRow: { flexDirection: "row", alignItems: "flex-end", gap: spacing.sm },
+  priceRow: { flexDirection: "row", gap: spacing.sm },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.dangerLight,
+    padding: spacing.sm,
+    borderRadius: 8,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: "600", flex: 1 },
 });

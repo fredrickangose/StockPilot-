@@ -7,7 +7,9 @@ import { listSellers, createSeller, deleteSeller } from "@/api/sellers";
 import { ApiError } from "@/api/client";
 import { TextField } from "@/components/TextField";
 import { PrimaryButton } from "@/components/PrimaryButton";
-import { colors, spacing } from "@/theme";
+import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
+import { colors, radii, spacing, typography } from "@/theme";
 
 export default function SellersScreen() {
   const queryClient = useQueryClient();
@@ -31,10 +33,13 @@ export default function SellersScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.count}>{sellers.length} seller{sellers.length === 1 ? "" : "s"}</Text>
-        <PrimaryButton title="+ Add Seller" onPress={() => setFormOpen(true)} />
+        <View>
+          <Text style={styles.headerTitle}>Sellers</Text>
+          <Text style={styles.count}>{sellers.length} seller{sellers.length === 1 ? "" : "s"}</Text>
+        </View>
+        <PrimaryButton title="Add" onPress={() => setFormOpen(true)} icon="person-add" size="sm" />
       </View>
 
       {isLoading ? (
@@ -44,17 +49,26 @@ export default function SellersScreen() {
           data={sellers}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<Text style={styles.muted}>No sellers yet. Add one to let them record sales.</Text>}
+          ListEmptyComponent={
+            <EmptyState
+              icon="people-outline"
+              title="No sellers yet"
+              subtitle="Add a seller so they can scan and record sales."
+            />
+          }
           renderItem={({ item }) => (
-            <View style={styles.row}>
-              <View>
+            <Card style={styles.row}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{item.name}</Text>
                 <Text style={styles.muted}>{item.phone}</Text>
               </View>
-              <Pressable onPress={() => confirmDelete(item.id, item.name)} hitSlop={12}>
-                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+              <Pressable onPress={() => confirmDelete(item.id, item.name)} hitSlop={12} style={styles.deleteBtn}>
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
               </Pressable>
-            </View>
+            </Card>
           )}
         />
       )}
@@ -95,20 +109,34 @@ function SellerForm({ onDone, onCancel }: { onDone: () => void; onCancel: () => 
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.formContent}>
+      <View style={styles.formHeader}>
+        <Pressable onPress={onCancel} hitSlop={12}>
+          <Ionicons name="close" size={24} color={colors.textMuted} />
+        </Pressable>
         <Text style={styles.formTitle}>Add Seller</Text>
-        <TextField label="Name" value={name} onChangeText={setName} placeholder="e.g. John Mwangi" />
-        <TextField label="Phone number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="0712345678" />
-        <TextField label="PIN (4-6 digits)" keyboardType="number-pad" secureTextEntry value={pin} onChangeText={setPin} placeholder="1234" />
+        <View style={{ width: 24 }} />
+      </View>
 
-        {error && <Text style={styles.error}>{error}</Text>}
+      <View style={styles.formContent}>
+        <TextField label="Name" icon="person" value={name} onChangeText={setName} placeholder="e.g. John Mwangi" />
+        <TextField label="Phone number" icon="call" keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="0712345678" />
+        <TextField label="PIN (4-6 digits)" icon="keypad" keyboardType="number-pad" secureTextEntry value={pin} onChangeText={setPin} placeholder="1234" />
 
-        <Text style={styles.hint}>
-          Share this phone number and PIN with the seller directly — they'll use them to sign in.
-        </Text>
+        {error && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
 
-        <PrimaryButton title="Add Seller" onPress={handleSave} loading={createMutation.isPending} />
-        <PrimaryButton title="Cancel" onPress={onCancel} variant="outline" />
+        <View style={styles.hintBox}>
+          <Ionicons name="information-circle" size={16} color={colors.primary} />
+          <Text style={styles.hint}>
+            Share this phone number and PIN with the seller directly — they'll use them to sign in.
+          </Text>
+        </View>
+
+        <PrimaryButton title="Add Seller" onPress={handleSave} loading={createMutation.isPending} icon="checkmark" />
       </View>
     </SafeAreaView>
   );
@@ -122,22 +150,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: spacing.lg,
   },
-  count: { color: colors.textMuted, fontWeight: "600" },
-  muted: { color: colors.textMuted, padding: spacing.lg },
-  error: { color: colors.danger },
-  hint: { color: colors.textMuted, fontSize: 13 },
+  headerTitle: { ...typography.title, color: colors.text },
+  count: { color: colors.textMuted, fontWeight: "600", fontSize: 13 },
+  muted: { color: colors.textMuted, fontSize: 13, padding: spacing.lg },
   listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    backgroundColor: colors.primaryLight,
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    justifyContent: "center",
   },
+  avatarText: { color: colors.primary, fontWeight: "800", fontSize: 15 },
   rowTitle: { fontWeight: "700", color: colors.text, fontSize: 15 },
+  deleteBtn: { padding: 4 },
+  formHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  formTitle: { fontSize: 17, fontWeight: "800", color: colors.text },
   formContent: { padding: spacing.lg, gap: spacing.md },
-  formTitle: { fontSize: 20, fontWeight: "800", color: colors.text },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.dangerLight,
+    padding: spacing.sm,
+    borderRadius: 8,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: "600", flex: 1 },
+  hintBox: {
+    flexDirection: "row",
+    gap: 6,
+    backgroundColor: colors.primaryLight,
+    padding: spacing.sm,
+    borderRadius: 8,
+    alignItems: "flex-start",
+  },
+  hint: { color: colors.primaryDark, fontSize: 12.5, flex: 1, lineHeight: 17 },
 });

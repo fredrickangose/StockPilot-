@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { getProductByBarcode } from "@/api/products";
 import { createSale } from "@/api/sales";
 import type { Product } from "@/api/types";
@@ -11,11 +12,12 @@ import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/TextField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { colors, spacing } from "@/theme";
+import { Card } from "@/components/Card";
+import { colors, radii, spacing, typography } from "@/theme";
 
 export default function ScanScreen() {
   const queryClient = useQueryClient();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [scanning, setScanning] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState("1");
@@ -26,7 +28,7 @@ export default function ScanScreen() {
   const saleMutation = useMutation({
     mutationFn: createSale,
     onSuccess: (res) => {
-      setSuccess(`Sold ${res.sale.quantity} x ${product?.name} for Ksh ${res.sale.totalAmount}.`);
+      setSuccess(`Sold ${res.sale.quantity} x ${product?.name} for Ksh ${Number(res.sale.totalAmount).toLocaleString()}.`);
       setProduct(null);
       setQuantity("1");
       queryClient.invalidateQueries({ queryKey: ["sales"] });
@@ -72,28 +74,62 @@ export default function ScanScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <Screen>
-        <Text style={styles.title}>Scan to Sell</Text>
-        <Text style={styles.subtitle}>Scan a product's barcode to record a sale.</Text>
+        <View>
+          <Text style={styles.greeting}>Hi, {user?.name?.split(" ")[0]}</Text>
+          <Text style={styles.title}>Scan to Sell</Text>
+        </View>
 
-        <PrimaryButton title="Scan Barcode" onPress={() => { setScanning(true); setSuccess(null); }} loading={lookupLoading} />
+        <PrimaryButton
+          title="Scan Barcode"
+          onPress={() => {
+            setScanning(true);
+            setSuccess(null);
+          }}
+          loading={lookupLoading}
+          icon="scan"
+        />
 
-        {success && <Text style={styles.success}>{success}</Text>}
-        {error && !product && <Text style={styles.error}>{error}</Text>}
-
-        {product && (
-          <View style={styles.card}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.muted}>Ksh {product.sellPrice} each &middot; {product.currentStock} in stock</Text>
-
-            <TextField label="Quantity" keyboardType="number-pad" value={quantity} onChangeText={setQuantity} />
-
-            {error && <Text style={styles.error}>{error}</Text>}
-
-            <PrimaryButton title="Confirm Sale" onPress={handleSubmit} loading={saleMutation.isPending} />
+        {success && (
+          <View style={styles.successBox}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+            <Text style={styles.successText}>{success}</Text>
+          </View>
+        )}
+        {error && !product && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
           </View>
         )}
 
-        <PrimaryButton title="Sign Out" onPress={logout} variant="outline" />
+        {product && (
+          <Card style={{ gap: spacing.sm }}>
+            <View style={styles.productHead}>
+              <View style={styles.productIcon}>
+                <Ionicons name="cube" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.muted}>
+                  Ksh {Number(product.sellPrice).toLocaleString()} each &middot; {product.currentStock} in stock
+                </Text>
+              </View>
+            </View>
+
+            <TextField label="Quantity" icon="calculator" keyboardType="number-pad" value={quantity} onChangeText={setQuantity} />
+
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            <PrimaryButton title="Confirm Sale" onPress={handleSubmit} loading={saleMutation.isPending} icon="checkmark-circle" />
+          </Card>
+        )}
+
+        <PrimaryButton title="Sign Out" onPress={logout} variant="ghost" icon="log-out-outline" />
       </Screen>
     </SafeAreaView>
   );
@@ -101,18 +137,35 @@ export default function ScanScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.text },
-  subtitle: { color: colors.textMuted },
-  success: { color: colors.success, fontWeight: "600" },
-  error: { color: colors.danger },
-  muted: { color: colors.textMuted },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
+  greeting: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.title, color: colors.text },
+  muted: { color: colors.textMuted, fontSize: 13 },
+  successBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.successLight,
+    padding: spacing.sm,
+    borderRadius: 8,
   },
-  productName: { fontSize: 18, fontWeight: "800", color: colors.text },
+  successText: { color: colors.success, fontWeight: "700", flex: 1, fontSize: 13 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.dangerLight,
+    padding: spacing.sm,
+    borderRadius: 8,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: "600", flex: 1 },
+  productHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  productIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  productName: { fontSize: 16, fontWeight: "800", color: colors.text },
 });

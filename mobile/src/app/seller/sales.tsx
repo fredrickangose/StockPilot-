@@ -2,8 +2,11 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { listMySales } from "@/api/sales";
-import { colors, spacing } from "@/theme";
+import { Card } from "@/components/Card";
+import { EmptyState } from "@/components/EmptyState";
+import { colors, radii, spacing, typography } from "@/theme";
 
 export default function MySalesScreen() {
   const { data, isLoading, refetch, isRefetching } = useQuery({
@@ -19,10 +22,15 @@ export default function MySalesScreen() {
   const total = useMemo(() => sales.reduce((sum, sale) => sum + Number(sale.totalAmount), 0), [sales]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
       <View style={styles.header}>
-        <Text style={styles.totalLabel}>Your total sales</Text>
-        <Text style={styles.totalValue}>Ksh {total.toLocaleString()}</Text>
+        <View style={styles.totalIcon}>
+          <Ionicons name="trending-up" size={20} color={colors.success} />
+        </View>
+        <View>
+          <Text style={styles.totalLabel}>Your total sales</Text>
+          <Text style={styles.totalValue}>Ksh {total.toLocaleString()}</Text>
+        </View>
       </View>
 
       {isLoading ? (
@@ -32,16 +40,21 @@ export default function MySalesScreen() {
           data={sales}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
-          ListEmptyComponent={<Text style={styles.muted}>No sales recorded yet.</Text>}
+          refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={colors.primary} />}
+          ListEmptyComponent={
+            <EmptyState icon="receipt-outline" title="No sales yet" subtitle="Scan a barcode to record your first sale." />
+          }
           renderItem={({ item }) => (
-            <View style={styles.row}>
-              <View>
+            <Card style={styles.row}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="receipt" size={16} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{item.quantity} unit{item.quantity === 1 ? "" : "s"}</Text>
                 <Text style={styles.muted}>{new Date(item.createdAt).toLocaleString()}</Text>
               </View>
-              <Text style={styles.rowAmount}>Ksh {item.totalAmount}</Text>
-            </View>
+              <Text style={styles.rowAmount}>Ksh {Number(item.totalAmount).toLocaleString()}</Text>
+            </Card>
           )}
         />
       )}
@@ -51,21 +64,28 @@ export default function MySalesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  header: { padding: spacing.lg, gap: 4 },
-  totalLabel: { color: colors.textMuted, fontWeight: "600" },
-  totalValue: { fontSize: 32, fontWeight: "800", color: colors.text },
-  muted: { color: colors.textMuted, paddingHorizontal: spacing.lg },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  header: { flexDirection: "row", alignItems: "center", gap: spacing.sm, padding: spacing.lg },
+  totalIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radii.md,
+    backgroundColor: colors.successLight,
     alignItems: "center",
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
+    justifyContent: "center",
   },
-  rowTitle: { fontWeight: "700", color: colors.text },
-  rowAmount: { fontWeight: "800", color: colors.primary },
+  totalLabel: { ...typography.caption, color: colors.textMuted },
+  totalValue: { fontSize: 28, fontWeight: "800", color: colors.text, letterSpacing: -0.4 },
+  muted: { color: colors.textMuted, fontSize: 13, paddingHorizontal: spacing.lg },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
+  row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  rowIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowTitle: { fontWeight: "700", color: colors.text, fontSize: 14.5 },
+  rowAmount: { fontWeight: "800", color: colors.text },
 });

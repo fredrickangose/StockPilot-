@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { getProductByBarcode } from "@/api/products";
 import { createRestock } from "@/api/restocks";
 import type { Product } from "@/api/types";
@@ -10,7 +11,8 @@ import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/TextField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
-import { colors, spacing } from "@/theme";
+import { Card } from "@/components/Card";
+import { colors, radii, spacing, typography } from "@/theme";
 
 export default function RestockScreen() {
   const queryClient = useQueryClient();
@@ -25,9 +27,7 @@ export default function RestockScreen() {
   const restockMutation = useMutation({
     mutationFn: createRestock,
     onSuccess: (res) => {
-      setSuccess(
-        `Added ${res.restock.quantity} units. New stock: ${res.product.currentStock}.`
-      );
+      setSuccess(`Added ${res.restock.quantity} units. New stock: ${res.product.currentStock}.`);
       setProduct(null);
       setQuantity("");
       setCostPerUnit("");
@@ -71,26 +71,58 @@ export default function RestockScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={["bottom"]}>
       <Screen>
-        <Text style={styles.title}>Restock</Text>
-        <Text style={styles.subtitle}>Scan a product's barcode to add new stock.</Text>
+        <View>
+          <Text style={styles.title}>Restock</Text>
+          <Text style={styles.subtitle}>Scan a product's barcode to add new stock.</Text>
+        </View>
 
-        <PrimaryButton title="Scan Barcode" onPress={() => { setScanning(true); setSuccess(null); }} loading={lookupLoading} />
+        <PrimaryButton
+          title="Scan Barcode"
+          onPress={() => {
+            setScanning(true);
+            setSuccess(null);
+          }}
+          loading={lookupLoading}
+          icon="scan"
+        />
 
-        {success && <Text style={styles.success}>{success}</Text>}
-        {error && !product && <Text style={styles.error}>{error}</Text>}
+        {success && (
+          <View style={styles.successBox}>
+            <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+            <Text style={styles.successText}>{success}</Text>
+          </View>
+        )}
+        {error && !product && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
 
         {product && (
-          <View style={styles.card}>
-            <Text style={styles.productName}>{product.name}</Text>
-            <Text style={styles.muted}>Current stock: {product.currentStock}</Text>
+          <Card style={{ gap: spacing.sm }}>
+            <View style={styles.productHead}>
+              <View style={styles.productIcon}>
+                <Ionicons name="cube" size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.muted}>Current stock: {product.currentStock}</Text>
+              </View>
+            </View>
 
-            <TextField label="Quantity Added" keyboardType="number-pad" value={quantity} onChangeText={setQuantity} placeholder="e.g. 20" />
-            <TextField label="Cost Per Unit (Ksh)" keyboardType="decimal-pad" value={costPerUnit} onChangeText={setCostPerUnit} />
+            <TextField label="Quantity Added" icon="add-circle" keyboardType="number-pad" value={quantity} onChangeText={setQuantity} placeholder="e.g. 20" />
+            <TextField label="Cost Per Unit (Ksh)" icon="cash" keyboardType="decimal-pad" value={costPerUnit} onChangeText={setCostPerUnit} />
 
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
 
-            <PrimaryButton title="Record Restock" onPress={handleSubmit} loading={restockMutation.isPending} />
-          </View>
+            <PrimaryButton title="Record Restock" onPress={handleSubmit} loading={restockMutation.isPending} icon="checkmark" />
+          </Card>
         )}
       </Screen>
     </SafeAreaView>
@@ -99,18 +131,35 @@ export default function RestockScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 24, fontWeight: "800", color: colors.text },
-  subtitle: { color: colors.textMuted },
-  success: { color: colors.success, fontWeight: "600" },
-  error: { color: colors.danger },
-  muted: { color: colors.textMuted },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.md,
-    gap: spacing.sm,
+  title: { ...typography.title, color: colors.text },
+  subtitle: { ...typography.subtitle, color: colors.textMuted },
+  muted: { color: colors.textMuted, fontSize: 13 },
+  successBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.successLight,
+    padding: spacing.sm,
+    borderRadius: 8,
   },
-  productName: { fontSize: 18, fontWeight: "800", color: colors.text },
+  successText: { color: colors.success, fontWeight: "700", flex: 1, fontSize: 13 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.dangerLight,
+    padding: spacing.sm,
+    borderRadius: 8,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: "600", flex: 1 },
+  productHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  productIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.sm,
+    backgroundColor: colors.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  productName: { fontSize: 16, fontWeight: "800", color: colors.text },
 });

@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { router } from "expo-router";
-import { StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "@/components/Screen";
 import { TextField } from "@/components/TextField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/auth/AuthContext";
 import { ApiError } from "@/api/client";
-import { colors, spacing } from "@/theme";
+import { colors, spacing, typography } from "@/theme";
 
 export default function RegisterScreen() {
   const { registerOwner } = useAuth();
@@ -41,24 +42,75 @@ export default function RegisterScreen() {
 
   return (
     <Screen>
-      <Text style={styles.title}>Create your business</Text>
-      <Text style={styles.subtitle}>Set up StockPilot for your shop</Text>
+      <Pressable style={styles.backRow} onPress={() => router.back()} hitSlop={12}>
+        <Ionicons name="chevron-back" size={20} color={colors.textMuted} />
+        <Text style={styles.backText}>Back</Text>
+      </Pressable>
 
-      <TextField label="Business name" value={businessName} onChangeText={setBusinessName} placeholder="e.g. Mama Njeri's Shop" />
-      <TextField label="Your name" value={ownerName} onChangeText={setOwnerName} placeholder="e.g. Jane Njeri" />
-      <TextField label="Phone number" keyboardType="phone-pad" value={phone} onChangeText={setPhone} placeholder="0712345678" />
-      <TextField label="Password" secureTextEntry value={password} onChangeText={setPassword} placeholder="At least 6 characters" />
+      <View style={styles.hero}>
+        <Text style={styles.title}>Create your business</Text>
+        <Text style={styles.subtitle}>Set up StockPilot for your shop in a minute</Text>
+      </View>
 
-      {error && <Text style={styles.error}>{error}</Text>}
+      <View style={styles.form}>
+        <TextField
+          label="Business name"
+          icon="storefront"
+          value={businessName}
+          onChangeText={setBusinessName}
+          placeholder="e.g. Mama Njeri's Shop"
+        />
+        <TextField
+          label="Your name"
+          icon="person"
+          value={ownerName}
+          onChangeText={setOwnerName}
+          placeholder="e.g. Jane Njeri"
+        />
+        <TextField
+          label="Phone number"
+          icon="call"
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="0712345678"
+        />
+        <TextField
+          label="Password"
+          icon="lock-closed"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          placeholder="At least 6 characters"
+        />
 
-      <PrimaryButton title="Create Business" onPress={handleSubmit} loading={loading} />
-      <PrimaryButton title="Back to Sign In" onPress={() => router.back()} variant="outline" />
+        {error && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={16} color={colors.danger} />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <PrimaryButton title="Create Business" onPress={handleSubmit} loading={loading} icon="rocket" />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: "800", color: colors.text, marginTop: spacing.lg },
-  subtitle: { fontSize: 15, color: colors.textMuted, marginBottom: spacing.sm },
-  error: { color: colors.danger, fontSize: 14 },
+  backRow: { flexDirection: "row", alignItems: "center", marginTop: spacing.sm },
+  backText: { color: colors.textMuted, fontWeight: "600", fontSize: 14 },
+  hero: { marginTop: spacing.md, marginBottom: spacing.sm, gap: 4 },
+  title: { ...typography.title, color: colors.text },
+  subtitle: { ...typography.subtitle, color: colors.textMuted },
+  form: { gap: spacing.md },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.dangerLight,
+    padding: spacing.sm,
+    borderRadius: 8,
+  },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: "600", flex: 1 },
 });
