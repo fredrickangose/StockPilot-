@@ -26,11 +26,12 @@ Every scan-driven screen (`owner/restock.tsx`, `seller/scan.tsx`) offers two way
 
 ## Deploying the website
 
-Vercel hard-excludes any deployed path containing a `node_modules` directory segment — no way to override it via `.vercelignore`. Expo's web export puts hashed font/icon assets under `dist/assets/node_modules/...`, which 404s once deployed unless fixed. `npm run build:web` handles this: it runs `expo export -p web`, then `scripts/fix-vercel-assets.js` renames that folder to `dist/assets/vendor` and rewrites the matching references in the JS bundle.
+**Continuous deployment is live**: pushing to `main` auto-deploys to https://stockpilot-web-gamma.vercel.app via Vercel's GitHub integration on the `kariobangi-legends/stockpilot-web` project. No manual step needed for a normal change.
 
-```
-EXPO_PUBLIC_API_URL=https://stockpilot-bz6o.onrender.com npm run build:web
-npx vercel deploy --prod --yes
-```
+Two project-level settings make that work correctly (already configured in the Vercel dashboard, not something `vercel.json` alone can express for a monorepo):
+- **Root Directory** = `mobile` — this repo has `server/` and `mobile/` as siblings, so Vercel needs to be told which subfolder is the actual site.
+- **Environment Variable** `EXPO_PUBLIC_API_URL` = `https://stockpilot-bz6o.onrender.com` (Production) — without this, the build falls back to whatever's in `.env` locally (`localhost:4000`), which would ship a site that can't reach the backend.
 
-(`vercel.json` points Vercel at the `dist/` output directory and enables clean URLs, since the static export produces one `.html` file per route, e.g. `register.html`, and Vercel doesn't serve those at their extension-less path by default.)
+`vercel.json`'s `buildCommand` (`npm run build:web`) handles a real Vercel-only gotcha: Vercel hard-excludes any deployed path containing a `node_modules` directory segment, with no way to override it via `.vercelignore` — confirmed by testing directly against Vercel's API. Expo's web export puts hashed font/icon assets under `dist/assets/node_modules/...`, which silently 404s once deployed unless fixed. `scripts/fix-vercel-assets.js` renames that folder to `dist/assets/vendor` and rewrites the matching references in the JS bundle; it's chained into `build:web`.
+
+**Manual CLI deploys don't work for this project** — `npx vercel deploy` (from `mobile/` or with `--cwd mobile` from the repo root) fails with "Root Directory 'mobile' does not exist." That's a real Vercel CLI/monorepo limitation: the project's Root Directory setting (needed for Git-triggered deploys, which clone the whole repo) conflicts with a CLI deploy that's already scoped to just the `mobile/` folder's contents — there's no combination of flags that satisfies both. Just push to `main`; that's the only supported deploy path now. To test a change before it's live, run `npm run web` locally and verify there, then push.
