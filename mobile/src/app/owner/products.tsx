@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -20,8 +20,28 @@ export default function ProductsScreen() {
   const { data, isLoading } = useQuery({ queryKey: ["products"], queryFn: listProducts });
   const [editing, setEditing] = useState<Product | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const products = data?.products ?? [];
+
+  const categories = useMemo(() => {
+    const distinct = new Set<string>();
+    let hasUncategorized = false;
+    for (const product of products) {
+      if (product.category?.trim()) {
+        distinct.add(product.category.trim());
+      } else {
+        hasUncategorized = true;
+      }
+    }
+    const sorted = Array.from(distinct).sort((a, b) => a.localeCompare(b));
+    return ["All", ...sorted, ...(hasUncategorized ? ["Uncategorized"] : [])];
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    if (selectedCategory === "All") return products;
+    return products.filter((product) => (product.category?.trim() || "Uncategorized") === selectedCategory);
+  }, [products, selectedCategory]);
 
   const openAdd = () => {
     setEditing(null);
@@ -41,24 +61,50 @@ export default function ProductsScreen() {
         <View>
           <Text style={styles.headerTitle}>Products</Text>
           <Text style={styles.count}>
-            {products.length} product{products.length === 1 ? "" : "s"}
+            {filteredProducts.length} product{filteredProducts.length === 1 ? "" : "s"}
+            {selectedCategory !== "All" ? ` in ${selectedCategory}` : ""}
           </Text>
         </View>
         <PrimaryButton title="Add" onPress={openAdd} icon="add" size="sm" />
       </View>
 
+      {categories.length > 2 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {categories.map((category) => {
+            const active = category === selectedCategory;
+            return (
+              <Pressable
+                key={category}
+                onPress={() => setSelectedCategory(category)}
+                style={[styles.chip, active && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, active && styles.chipTextActive]}>{category}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      )}
+
       {isLoading ? (
         <Text style={styles.muted}>Loading…</Text>
       ) : (
         <FlatList
-          data={products}
+          data={filteredProducts}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={
             <EmptyState
               icon="cube-outline"
-              title="No products yet"
-              subtitle="Add your first product and give it a barcode to start tracking stock."
+              title={selectedCategory === "All" ? "No products yet" : `No products in ${selectedCategory}`}
+              subtitle={
+                selectedCategory === "All"
+                  ? "Add your first product and give it a barcode to start tracking stock."
+                  : "Try a different category, or add one here."
+              }
             />
           }
           renderItem={({ item }) => (
@@ -69,7 +115,10 @@ export default function ProductsScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowTitle} numberOfLines={1}>{item.name}</Text>
-                  <Text style={styles.muted}>#{item.barcode}</Text>
+                  <Text style={styles.muted}>
+                    #{item.barcode}
+                    {item.category ? ` · ${item.category}` : ""}
+                  </Text>
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 4 }}>
                   <Text style={styles.rowPrice}>Ksh {Number(item.sellPrice).toLocaleString()}</Text>
@@ -227,6 +276,18 @@ const styles = StyleSheet.create({
   headerTitle: { ...typography.title, color: colors.text },
   count: { color: colors.textMuted, fontWeight: "600", fontSize: 13 },
   muted: { color: colors.textMuted, fontSize: 13 },
+  chipRow: { paddingHorizontal: spacing.lg, paddingBottom: spacing.md, gap: spacing.xs },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceMuted,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipText: { fontSize: 13, fontWeight: "700", color: colors.textMuted },
+  chipTextActive: { color: colors.white },
   listContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.sm },
   row: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   rowIcon: {
